@@ -1,9 +1,14 @@
 use std::marker::PhantomData;
 
 use ark_ff::PrimeField;
-use ark_poly::univariate::DensePolynomial;
 
 use crate::utils::{isogeny::Isogeny, matrix::Matrix};
+use crate::group_polynomial::DenseGroupPolynomial;
+
+use crate::my_group::MyGroup;
+
+pub mod read_ecfft;
+pub mod ecfft_tests;
 
 pub trait EcFftParameters<F: PrimeField>: Sized {
     /// Logarithm of the size of the maximal ECFFT coset in the curve.
@@ -123,7 +128,7 @@ impl<F: PrimeField, P: EcFftParameters<F>> EcFftCosetPrecomputation<F, P> {
     /// From `evals` the evaluations of a polynomial on `self.steps[0].s`,
     /// return the evaluations of the polynomial on `self.steps[0].s_prime` in `O(n * log n)`.
     /// See https://solvable.group/posts/ecfft/ for a simple explanation of this function.
-    pub fn extend(&self, evals: &[F]) -> Vec<F> {
+    pub fn extend<G: MyGroup<ScalarField=F>>(&self, evals: &[G]) -> Vec<G> {
         let mut evals = evals.to_vec();
         self.extend_in_place(&mut evals);
         evals
@@ -132,7 +137,7 @@ impl<F: PrimeField, P: EcFftParameters<F>> EcFftCosetPrecomputation<F, P> {
     /// Mutate `evals`, which contains the evaluations of a polynomial on `self.steps[0].s`,
     /// to store the evaluations of the polynomial on `self.steps[0].s_prime` in `O(n * log n)`.
     /// See https://solvable.group/posts/ecfft/ for a simple explanation of this function.
-    pub fn extend_in_place(&self, evals: &mut [F]) {
+    pub fn extend_in_place<G: MyGroup<ScalarField=F>>(&self, evals: &mut [G]) {
         let n = evals.len();
         if n == 1 {
             return;
@@ -179,7 +184,7 @@ impl<F: PrimeField, P: EcFftParameters<F>> EcFftCosetPrecomputation<F, P> {
 impl<F: PrimeField, P: EcFftParameters<F>> EcFftPrecomputation<F, P> {
     /// Evaluates polynomial of degree `<n` on the sub-coset of size `n` in O(n * log^2 n).
     /// Expects the polynomial to have a power of two coefficients, so one may need to resize with zeros before calling this.
-    pub fn evaluate_over_domain(&self, poly: &DensePolynomial<F>) -> Vec<F> {
+    pub fn evaluate_over_domain<G: MyGroup<ScalarField=F>>(&self, poly: &DenseGroupPolynomial<G>) -> Vec<G> {
         let mut evaluations = poly.to_vec();
         let mut scratch1 = poly.coeffs.clone();
         self.ecfft_in_place(&mut evaluations, &mut scratch1);
@@ -188,7 +193,7 @@ impl<F: PrimeField, P: EcFftParameters<F>> EcFftPrecomputation<F, P> {
 
     /// Evaluates polynomial of degree `<n` on the sub-coset of size `n` in O(n * log^2 n).
     /// Expects the polynomial to have a power of two coefficients, so one may need to resize with zeros before calling this.
-    pub fn ecfft_in_place(&self, poly: &mut [F], scratch1: &mut [F]) {
+    pub fn ecfft_in_place<G: MyGroup<ScalarField=F>>(&self, poly: &mut [G], scratch1: &mut [G]) {
         let n = poly.len();
         if n == 1 {
             return;
@@ -215,14 +220,14 @@ impl<F: PrimeField, P: EcFftParameters<F>> EcFftPrecomputation<F, P> {
         let coset = &precomputations[P::LOG_N - log_n].coset;
         assert_eq!(n, coset.len());
         (0..(n / 2)).for_each(|i| {
-            poly[2 * i] = low_1[i] + coset[2 * i].pow([n as u64 / 2]) * high_1[i];
+            poly[2 * i] = low_1[i] + high_1[i] * coset[2 * i].pow([n as u64 / 2]);
         });
 
         precomputations[P::LOG_N - log_n].extend_in_place(low_1);
         precomputations[P::LOG_N - log_n].extend_in_place(high_1);
 
         (0..(n / 2)).for_each(|i| {
-            poly[2 * i + 1] = low_1[i] + coset[2 * i + 1].pow([n as u64 / 2]) * high_1[i];
+            poly[2 * i + 1] = low_1[i] + high_1[i] * coset[2 * i + 1].pow([n as u64 / 2]);
         });
     }
 }

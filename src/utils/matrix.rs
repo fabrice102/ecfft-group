@@ -1,5 +1,7 @@
 use ark_ff::PrimeField;
 
+use crate::my_group::MyGroup;
+
 #[derive(Clone, Copy)]
 /// 2x2 matrix.
 pub struct Matrix<T>(pub [[T; 2]; 2]);
@@ -14,17 +16,18 @@ impl<F: PrimeField> Matrix<F> {
 
     #[allow(clippy::many_single_char_names)]
     /// Multiply a vector of 2 field elements by the matrix.
-    pub fn multiply(&self, v: [F; 2]) -> [F; 2] {
+    pub fn multiply<G: MyGroup<ScalarField=F>>(&self, v: [G; 2]) -> [G; 2] {
         let [[a, b], [c, d]] = self.0;
         let [x, y] = v;
-        [a * x + b * y, c * x + d * y]
+        [x * a + y * b, x * c + y * d]
     }
 
     #[allow(clippy::many_single_char_names)]
     /// Multiply a vector of 2 field elements by the matrix.
-    pub fn multiply_in_place(&self, x: &mut F, y: &mut F) {
+    pub fn multiply_in_place<G: MyGroup<ScalarField=F>>(&self, x: &mut G, y: &mut G) {
+        // TODO: use multiscalar
         let [[a, b], [c, d]] = self.0;
-        let (a, b) = (a * *x + b * *y, c * *x + d * *y);
+        let (a, b) = (*x * a + *y * b, *x * c + *y * d);
         *x = a;
         *y = b;
     }
