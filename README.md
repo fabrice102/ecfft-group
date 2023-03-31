@@ -38,20 +38,41 @@ The base field of the BLS12-381 curve is also supported, for degrees up to `2^15
 
 The implementation uses precomputations for the coset and isogenies used in the ECFFT. These precomputations are computed in `get_params.sage` and are stored in the `bn254_coset` and `bn254_isogenies` files.
 
-To implement the ECFFT for other fields, similar precomputations should be performed. For example, here is how to generate the precomputations for BLS12-381:
+To implement the ECFFT for other fields, similar precomputations should be performed.
+For example, here is how to generate the precomputations for base field of BLS12-381 and the scalar field of ED25519.
+
+#### Precomputations for the base field of BN254
 
 ```bash
 # sage get_params.sage p a b output_filename
 sage get_params.sage 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab 0x1800fb41dab7368489a980e14a746abfe7c87588aac25c113301d524b734a5043bbc89dd7d0c5b41de5d348ac2e838c6 0x11c65a0a6e52b8b88366e0b0df28c6804f14f35cb833cb0d918c9e758f044d95777beb965a967af4ef518ad0618a809a bls12-381
 ```
 
+#### Precompurations for the scalar field of ED25519
+
+Use `find_ec.ipynb` to find a good curve.
+This is just brute force.
+
+Then
+
+```bash
+# sage get_params.sage p a b output_filename
+sage get_params.sage 7237005577332262213973186563042994240857116359379907606001950938285454250989 358411639496974511688972102234120389095655852877724179826497455556504284563 820979117428412570825388108132290158712218308953717713756580934786362626809 ed25519sc
+```
+
+this is for an ECC with order multiple of 512=2^10.
+
+This can be used for fast evaluation of polynomials of coefficients in the scalar field (we denote this by ed25519sc) and also in the group of the elliptic curve (we denote this by ed25519pt).
+
 ### Benchmarks
+
+#### For the base field of BN254
 
 Here is a comparison of the running time for the evaluation of a polynomial of degree `n-1` on a domain of `n` points using 3 algorithms:
 
-- the naive evaluation in `O(n^2)`,
+- the naive evaluation in `O(n^2)` for the base field of BN254,
 - the classic FFT (on the FFT-friendly BN254 scalar field) in `O(n * log n)`,
-- the ECFFT ENTER algorithm in `O(n * log^2 n)`.
+- the ECFFT ENTER algorithm in `O(n * log^2 n)` for the base field of BN354.
 
 | `log n` | Naive (ms)  | Classic (ms) | ECFFT (ms) | Naive/ECFFT | ECFFT/Classic |
 | ------- | ----------- | ------------ | ---------- | ----------- | ------------- |

@@ -1,34 +1,32 @@
 //! Tools to test easily a specific ECFFT implementation
 
-use ark_ff::PrimeField;
+#![cfg(test)]
+
 use ark_std::test_rng;
 
-use crate::ecfft::{EcFftCosetPrecomputation, EcFftParameters, EcFftPrecomputation, EcFftPrecomputationStep};
+use crate::ecfft::{
+    EcFftCosetPrecomputation, EcFftParameters, EcFftPrecomputation, EcFftPrecomputationStep,
+};
 use crate::group_polynomial::DenseGroupPolynomial;
 use crate::my_group::MyGroup;
 
 /// Tests that precomputations don't panic.
 pub fn test_precompute<G: MyGroup, P: EcFftParameters<G::ScalarField>>() {
     P::precompute_on_coset(&P::coset());
-    P::precompute_on_coset(
-        &P::coset()
-            .into_iter()
-            .step_by(2)
-            .collect::<Vec<_>>(),
-    );
+    P::precompute_on_coset(&P::coset().into_iter().step_by(2).collect::<Vec<_>>());
 }
 
-/// Tests the extend function with a polynomial of degree `2^i - 1`.
+/// Tests the extend function with a polynomial of degree `2^(log(n)-i) - 1`.
+/// 1 <= i <= log(n) - 1
 pub fn test_extend_i<G: MyGroup, P: EcFftParameters<G::ScalarField>>(
     i: usize,
     precomputation: &EcFftCosetPrecomputation<G::ScalarField, P>,
 ) {
-    let n = 1 << i;
+    let n = P::N >> i;
     let mut rng = test_rng();
     let coeffs: Vec<G> = (0..n).map(|_| G::rand(&mut rng)).collect();
     let poly = DenseGroupPolynomial { coeffs };
-    let EcFftPrecomputationStep { s, s_prime, .. } =
-        &precomputation.steps[P::LOG_N - 1 - i];
+    let EcFftPrecomputationStep { s, s_prime, .. } = &precomputation.steps[i - 1];
     let evals_s = s.iter().map(|x| poly.evaluate(x)).collect::<Vec<_>>();
     let evals_s_prime = s_prime.iter().map(|x| poly.evaluate(x)).collect::<Vec<_>>();
     assert_eq!(evals_s_prime, precomputation.extend(&evals_s));
@@ -36,8 +34,7 @@ pub fn test_extend_i<G: MyGroup, P: EcFftParameters<G::ScalarField>>(
 
 /// Tests the extend function for various degrees.
 pub fn test_extend<G: MyGroup, P: EcFftParameters<G::ScalarField>>() {
-    let precomputation =
-        P::precompute_on_coset(&P::coset());
+    let precomputation = P::precompute_on_coset(&P::coset());
     for i in 1..P::LOG_N {
         test_extend_i::<G, P>(i, &precomputation);
     }
@@ -100,6 +97,10 @@ macro_rules! ecfft_tests {
 
                 #(#[test_case(N)])*
                 fn test_extend(i: usize) {
+                    if i == 0 {
+                        // skip as not supported for i=0
+                        return
+                    }
                     ecfft_tests::test_extend_i::<G, P>(i, &PRECOMPUTATION.coset_precomputations[0]);
                 }
             });
@@ -108,5 +109,3 @@ macro_rules! ecfft_tests {
 }
 
 pub(crate) use ecfft_tests;
-
-

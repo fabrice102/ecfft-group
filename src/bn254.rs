@@ -1,7 +1,8 @@
 use std::convert::TryInto;
 
-use crate::{ecfft::EcFftParameters, ecfft::read_ecfft, utils::isogeny::Isogeny};
+use crate::{ecfft::read_ecfft, ecfft::EcFftParameters, utils::isogeny::Isogeny};
 use ark_ff::BigInteger256;
+use crate::my_group::MyGroup;
 
 pub type F = ark_bn254::Fq;
 /// Number of 64-bit limbs needed to represent field elements.
@@ -20,29 +21,35 @@ impl EcFftParameters<F> for Bn254EcFftParameters {
     const N: usize = 1 << Self::LOG_N;
 
     fn coset() -> Vec<F> {
-        read_ecfft::read_coset::<F, NUM_LIMBS, _>(
-            "bn254_coset",
-            |v| BigInteger256::new(v.try_into().unwrap()).into()
-        )
+        read_ecfft::read_coset::<F, NUM_LIMBS, _>("bn254_coset", |v| {
+            BigInteger256::new(v.try_into().unwrap()).into()
+        })
     }
 
     fn isogenies() -> Vec<Isogeny<F>> {
-        read_ecfft::read_isogenies::<F, NUM_LIMBS, _>(
-            "bn254_isogenies",
-            |v| BigInteger256::new(v.try_into().unwrap()).into()
-        )
+        read_ecfft::read_isogenies::<F, NUM_LIMBS, _>("bn254_isogenies", |v| {
+            BigInteger256::new(v.try_into().unwrap()).into()
+        })
+    }
+}
+
+impl MyGroup for ark_bn254::Fq {
+    type ScalarField = Self;
+
+    fn generator() -> Self {
+        Self::from(1)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::ecfft::ecfft_tests::ecfft_tests;
     use super::*;
+    use crate::ecfft::ecfft_tests::ecfft_tests;
 
     ecfft_tests! {
         bn254,
         super::F,
-        super::Bn254EcFftParameters, 
+        super::Bn254EcFftParameters,
         10, // use 0 instead of 10 for full tests
         14
     }

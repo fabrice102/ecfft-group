@@ -41,16 +41,20 @@ n = O.p_primary_part(2)
 log_n = n.log(2)
 print(f"Curve's scalar field 2-adicity: {log_n}")
 
+# Note that the algorithm below assume that E has a 2^log_n cyclic subgroup
+# not just a 2^log_n subgroup
 while True:
     g = E.random_point()
     G = (O // n) * g
     for i in range(log_n):
         if ((2 ^ i) * G).is_zero():
+            print(f"  {2^i} * G is zero, trying a new point")
             break
     else:
         break
 
 assert (n * G).is_zero()
+print(f"found element G that generates the subgroup of order {2^log_n}")
 R = E.random_element()
 H = [R + i * G for i in range(2 ^ log_n)]
 L = [h.xy()[0] for h in H]
@@ -59,8 +63,14 @@ S_prime = [L[i] for i in range(1, n, 2)]
 
 # Number of 64-bit limbs needed to represent field elements
 num_limbs = (p.bit_length() + 63) // 64
+print(f"number of limbs: {num_limbs}")
+
+coset_file_name = f"{filename}_coset"
 s = "\n".join([str(l) for x in L for l in to_limbs(int(x), num_limbs)])
-open(f"{filename}_coset", "w").write(s)
+with open(coset_file_name, "w") as f:
+    f.write(s)
+
+print(f"file {coset_file_name} written")
 
 
 def isogenies(log_n, S, S_prime, E):
@@ -90,4 +100,8 @@ s = "\n".join(
         for l in to_limbs(int(coeff), num_limbs)
     ]
 )
-open(f"{filename}_isogenies", "w").write(s)
+
+isogenies_file_name = f"{filename}_isogenies"
+with open(isogenies_file_name, "w") as f:
+    f.write(s)
+print(f"file {isogenies_file_name} written")

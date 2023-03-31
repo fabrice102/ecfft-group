@@ -12,7 +12,7 @@ fn evaluations(c: &mut Criterion) {
     let precomputation = P::precompute();
     let mut rng = test_rng();
 
-    let mut group = c.benchmark_group("evaluations");
+    let mut group = c.benchmark_group("bn254");
     group.measurement_time(Duration::from_secs(30));
 
     for log_n in 1..=P::LOG_N {

@@ -1,8 +1,8 @@
 // Inspired from dense.rs from ark-poly ...
 
-use std::ops::{Deref, DerefMut};
 use super::my_group::MyGroup;
 use ark_ff::Zero;
+use std::ops::{Deref, DerefMut};
 
 /// Stores a polynomial in coefficient form
 /// with coefficients in a group G

@@ -1,11 +1,8 @@
-use ark_ff::{
-    fields::{PrimeField},
-    UniformRand,
-};
+use ark_ff::{fields::PrimeField, UniformRand};
 use ark_std::{
     fmt::{Debug, Display},
     hash::Hash,
-    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign}
+    ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 use num_traits::Zero;
 use zeroize::Zeroize;
@@ -46,12 +43,4 @@ pub trait MyGroup:
     /// Returns a fixed generator of this group.
     #[must_use]
     fn generator() -> Self;
-}
-
-impl MyGroup for ark_bn254::Fq {
-    type ScalarField = Self;
-
-    fn generator() -> Self {
-        Self::from(1)
-    }
 }

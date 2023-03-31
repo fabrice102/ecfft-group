@@ -9,6 +9,7 @@ ark-ec = "0.4.1"
 ark-ff = "0.4.2"
 ark-bn254 = "0.4.0"
 ark-bls12-381 = "0.4.0"
+ark-ed25519 = "0.4.0"
 ark-std = "0.4.0"
 ark-poly = "0.4.2"
 num-traits = "0.2.15"
@@ -21,5 +22,9 @@ test-case = "3.0.0"
 criterion = "0.4.0"
 
 [[bench]]
-name = "evaluations"
+name = "bn254"
+harness = false
+
+[[bench]]
+name = "ed25519sc"
 harness = false

@@ -16,7 +16,7 @@ impl<F: PrimeField> Matrix<F> {
 
     #[allow(clippy::many_single_char_names)]
     /// Multiply a vector of 2 field elements by the matrix.
-    pub fn multiply<G: MyGroup<ScalarField=F>>(&self, v: [G; 2]) -> [G; 2] {
+    pub fn multiply<G: MyGroup<ScalarField = F>>(&self, v: [G; 2]) -> [G; 2] {
         let [[a, b], [c, d]] = self.0;
         let [x, y] = v;
         [x * a + y * b, x * c + y * d]
@@ -24,7 +24,7 @@ impl<F: PrimeField> Matrix<F> {
 
     #[allow(clippy::many_single_char_names)]
     /// Multiply a vector of 2 field elements by the matrix.
-    pub fn multiply_in_place<G: MyGroup<ScalarField=F>>(&self, x: &mut G, y: &mut G) {
+    pub fn multiply_in_place<G: MyGroup<ScalarField = F>>(&self, x: &mut G, y: &mut G) {
         // TODO: use multiscalar
         let [[a, b], [c, d]] = self.0;
         let (a, b) = (*x * a + *y * b, *x * c + *y * d);
