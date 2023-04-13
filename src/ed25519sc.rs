@@ -9,6 +9,7 @@ use ark_ec::Group;
 use crate::my_group::MyGroup;
 
 pub type F = ark_ed25519::Fr;
+pub type G = ark_ed25519::EdwardsProjective;
 /// Number of 64-bit limbs needed to represent field elements.
 const NUM_LIMBS: usize = 4;
 
@@ -56,6 +57,7 @@ impl MyGroup for ark_ed25519::EdwardsProjective {
 
 #[cfg(test)]
 mod tests {
+    use ark_std::{rand::Rng, test_rng};
     use super::*;
     use crate::ecfft::ecfft_tests::ecfft_tests;
 
@@ -74,4 +76,14 @@ mod tests {
         5, // select 0 for full tests (slower)
         10
     }
+
+    #[test]
+    pub fn test_scalar_mult_2() {
+        // Multiply a random point by 2
+        let mut rng = test_rng();
+        let pt: G = rng.gen();
+        let sc: F = F::from(2);
+        let _ = pt * sc;
+    }
+
 }

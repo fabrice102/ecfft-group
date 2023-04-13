@@ -16,7 +16,7 @@ pub struct Bn254EcFftParameters;
 impl EcFftParameters<F> for Bn254EcFftParameters {
     /// The curve `E` has order `21888242871839275222246405745257275088712935808829559400805562964428910444544`
     /// with factorization `2^14 * 3^2 * 229 * 503 * 205460939795467 * 55374745393148401254803 * 113267149255983544517087125127`.
-    const LOG_N: usize = 14; // 14;
+    const LOG_N: usize = 14;
 
     const N: usize = 1 << Self::LOG_N;
 
@@ -50,7 +50,7 @@ mod tests {
         bn254,
         super::F,
         super::Bn254EcFftParameters,
-        10, // use 0 instead of 10 for full tests
+        0, // 0 = full tests, higher value allows tests to run faster
         14
     }
 }
