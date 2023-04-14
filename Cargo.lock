@@ -376,6 +376,7 @@ version = "0.1.0"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254",
+ "ark-curve25519",
  "ark-ec",
  "ark-ed25519",
  "ark-ff",
