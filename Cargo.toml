@@ -1,8 +1,11 @@
 [package]
-name = "ecfft-bn254"
+name = "ecfft-group"
 version = "0.1.0"
 edition = "2021"
-authors = ["William Borgeaud <williamborgeaud@gmail.com>"]
+authors = [
+    "Fabrice Benhamouda",
+    "William Borgeaud <williamborgeaud@gmail.com>"
+]
 
 [dependencies]
 ark-ec = "0.4.1"
