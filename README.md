@@ -1,4 +1,6 @@
-# ECFFT algorithms on the BN254 base field
+# ECFFT algorithms on various prime-order fields and groups
+
+**IMPORTANT DISCLAIMER: This code is provided as is, without warranty of any kind, express or implied. It has not been audited nor fully tested. Use at your own risk.**
 
 This crate implements structs and traits for the ECFFT algorithms from the paper 
 [Elliptic Curve Fast Fourier Transform (ECFFT) Part I: Fast Polynomial Algorithms over all Finite Fields](https://arxiv.org/abs/2107.08473) 
