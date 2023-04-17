@@ -3,9 +3,9 @@
 // use ark_poly::{EvaluationDomain, Polynomial, Radix2EvaluationDomain};
 use ark_std::{rand::Rng, test_rng, time::Duration};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use ecfft_bn254::bn254::{Bn254EcFftParameters, F};
-use ecfft_bn254::ecfft::EcFftParameters;
-use ecfft_bn254::group_polynomial::DenseGroupPolynomial;
+use ecfft_group::bn254::{Bn254EcFftParameters, F};
+use ecfft_group::ecfft::EcFftParameters;
+use ecfft_group::group_polynomial::DenseGroupPolynomial;
 
 fn evaluations(c: &mut Criterion) {
     type P = Bn254EcFftParameters;

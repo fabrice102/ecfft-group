@@ -4,9 +4,9 @@ use ark_ec::{VariableBaseMSM, ScalarMul};
 // use ark_poly::{EvaluationDomain, Polynomial, Radix2EvaluationDomain};
 use ark_std::{rand::Rng, test_rng, time::Duration};
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use ecfft_bn254::ecfft::EcFftParameters;
-use ecfft_bn254::group_polynomial::{DenseGroupPolynomial, smallest_range};
-use ecfft_bn254::ed25519sc::{Ed25519EcFftParameters};
+use ecfft_group::ecfft::EcFftParameters;
+use ecfft_group::group_polynomial::{DenseGroupPolynomial, smallest_range};
+use ecfft_group::ed25519sc::{Ed25519EcFftParameters};
 
 type P = Ed25519EcFftParameters;
 type F = ark_ed25519::Fr;

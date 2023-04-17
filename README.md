@@ -94,20 +94,49 @@ See the original [ecfft-bn254 crate](https://github.com/wborgeaud/ecfft-bn254)
 Here is a comparison of the running time for the evaluation of a polynomial of degree `n-1` 
 on a domain of `n` evaluation points using 3 algorithms:
 
-- the naive evaluation in `O(n^2)` over the ECFFT `n` evaluation points (Horner algorithm)
-- the naive evaluation over the `n` small evaluation points `[-n/2,...,n/2]` (Horner algorithm). 
-  This is about `256/log n` faster than over the ECFFT `n` evalutaion points bacause, where the `1/log n` factor
-  the scalar multiplication of a elliptic curve point with a small scalar evaluation point of `log n` bits is about
-  `256 / log n` faster than when the scalar evaluation point is 256-bit long (assuming a double-and-add scalar multiplication)
-- the ECFFT ENTER algorithm in `O(n * log^2 n)` over the ECFFT `n` evaluation points
+- Naive: the naive evaluation in `O(n^2)` over the ECFFT "basic set" with `n` evaluation points using the Horner algorithm.
+- ECFFT: the ECFFT ENTER algorithm in `O(n * log^2 n)` over the ECFFT "basic set" with `n` evaluation points.
+- Small: the naive evaluation over the `n` small evaluation points `[-n/2,...,n/2]` using the Hornet algorithm
+  This is about `256/log n` faster than over the ECFFT `n` evaluation points, because
+  the scalar multiplication of an elliptic curve point with a small scalar evaluation point of `log n` bits is about
+  `256 / log n` faster than when the scalar evaluation point is 256-bit long 
+  (assuming a double-and-add scalar multiplication)
 
 There is also a benchmark for the ECFFT EXTEND algorithm alone, which is in `O(n * log n)`.
+The input of the EXTEND algorithm is `n` evaluations of a polynomial over the ECFFT "basic set" of `n` evaluation points
+and extend it to the ECFFT "basic set" of `2n` evaluation points (which include those `n` initial evaluation points).
+By definition, this algorithm works only for `n` up to half of the supported maximum degree.
+
+| `log n` | Naive   | ECFFT   | Small   | Extend  |
+|---------|---------|---------|---------|---------|
+| 1       | 417  us | 211  us | 2.42 us | 687  us |
+| 2       | 1.80 ms | 2.31 ms | 15.4 us | 3.22 ms |
+| 3       | 7.25 ms | 12.0 ms | 85.0 us | 10.1 ms |
+| 4       | 29.1 ms | 46.4 ms | 436  us | 27.8 ms |
+| 5       | 118  ms | 151  ms | 2.23 ms | 69.9 ms |
+| 6       | 469  ms | 448  ms | 10.7 ms | 169  ms |
+| 7       | 1.88 s  | 1.26 s  | 50.2 ms | 396  ms |
+| 8       | 7.54 s  | 3.32 s  | 232  ms | 907  ms |
+| 9       | 30.1 s  | 8.56 s  | 1.03 s  | 2.06 s  |
+| 10      | 121  s  | 21.2 s  | 4.66 s  |         |
 
 There are also benchmarks for polynomials with scalar coefficients.
 But those are not included below.
 
-| `log n` | Naive (ms)  | Classic (ms) | ECFFT (ms) | Naive/ECFFT | ECFFT/Classic |
-| ------- | ----------- | ------------ | ---------- | ----------- | ------------- |
+Table generated using:
+
+```bash
+$ python3 benches_table.py --criterion-target-folder "target/criterion/ed25519-poly" --bench-names "pt-ecfftDm-naive,pt-ecfftDm-ecfft,pt-smallDm-hornerSmall,pt-ecfftDm-extend" --short-bench-names "Naive,ECFFT,Small,Extend"
+```
+
+when running the benchmark in a 2-vCPU VM (AMD EPYC 7642, 2.3 GHz, 4GB RAM).
+The code is single-threaded and only uses one core.
+
+Note that the code is not really optimized. In particular:
+
+- The code does not use optimized algorithms for double-scalar-multiplications (`x A + y B`), which can significantly increase ECFFT operations (but not Small Horner).
+  [Multi-scalar-multiplication from ark-ec](https://docs.rs/ark-ec/0.2.0/ark_ec/msm/struct.VariableBaseMSM.html) uses the Pippenger algorithm which appears slower than using single scalar-multiplication in dimension 2. 
+- Using https://github.com/dalek-cryptography/ed25519-dalek could lead to performance improvements, especially with simd backend. 
 
 ## References
 
