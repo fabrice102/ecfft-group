@@ -1,4 +1,7 @@
 /target
+/target-*
+/rsync-*
+__pycache__
 get_params.sage.py
 .vscode/
 .idea
