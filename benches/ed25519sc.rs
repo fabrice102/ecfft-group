@@ -100,7 +100,7 @@ fn base(c: &mut Criterion) {
         b.iter(|| -pt1);
     });
 
-    for log_n in 0..10 {
+    for log_n in 0..=12 {
         let n = 1 << log_n;
         group.bench_with_input(BenchmarkId::new("convert-to-mul-base", log_n), &log_n, |b, _| {
             let pts: Vec<G> = (0..n).map(|_| rng.gen()).collect();
@@ -108,9 +108,8 @@ fn base(c: &mut Criterion) {
         });
         group.bench_with_input(BenchmarkId::new("multi-scalar-mult-rng", log_n), &log_n, |b, _| {
             let pts: Vec<G> = (0..n).map(|_| rng.gen()).collect();
-            let pts = G::batch_convert_to_mul_base(&pts);
             let scs: Vec<F> = (0..n).map(|_| rng.gen()).collect();
-            b.iter(|| G::msm(&pts, &scs).unwrap());
+            b.iter(|| G::msm(&G::batch_convert_to_mul_base(&pts), &scs).unwrap());
         });
     }
 
