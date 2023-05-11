@@ -52,9 +52,16 @@ impl<G: MyGroup> DenseGroupPolynomial<G> {
     #[inline]
     // Horner's method for polynomial evaluation
     fn horner_evaluate(poly_coeffs: &[G], point: &G::ScalarField) -> G {
-        poly_coeffs
+        // Multiplication by the zero group element is not free in general
+        // so we need to carve out this special case
+        if poly_coeffs.is_empty() {
+            return G::zero();
+        }
+        poly_coeffs[..poly_coeffs.len()-1]
             .iter()
-            .rfold(G::zero(), move |result, coeff| result * point + coeff)
+            .rfold(
+                *poly_coeffs.last().unwrap(),
+                move |result, coeff| result * point + coeff)
     }
 
     #[inline]
@@ -64,9 +71,16 @@ impl<G: MyGroup> DenseGroupPolynomial<G> {
     // and negative the result
     // is faster than multiplying a group element by -neg_pooint
     fn horner_evaluate_neg(poly_coeffs: &[G], neg_point: &G::ScalarField) -> G {
-        poly_coeffs
+        // Multiplication by the zero group element is not free in general
+        // so we need to carve out this special case
+        if poly_coeffs.is_empty() {
+            return G::zero();
+        }
+        poly_coeffs[..poly_coeffs.len()-1]
             .iter()
-            .rfold(G::zero(), move |result, coeff| - result * neg_point + coeff)
+            .rfold(
+                *poly_coeffs.last().unwrap(),
+                move |result, coeff| - result * neg_point + coeff)
     }
 
     fn internal_evaluate(&self, point: &G::ScalarField) -> G {

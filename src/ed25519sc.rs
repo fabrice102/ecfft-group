@@ -10,18 +10,19 @@ use crate::my_group::MyGroup;
 
 pub type F = ark_ed25519::Fr;
 pub type G = ark_ed25519::EdwardsProjective;
+
 /// Number of 64-bit limbs needed to represent field elements.
 const NUM_LIMBS: usize = 4;
 
 /// ECFFT parameters for the ED22519 scalar field `F`.
 /// Computed with the curve `E = EllipticCurve(F, [a, b])` with
-/// `a = 7237005577332262213973186563042994240857116359379907606001950938285454250989`,
-/// `b = 5612291247948481584627780310922020304781354847659642188369727566000581075360`.
+/// `a = 4392976802491101277119858233748628886670447097743165573553979461609125550624`,
+/// `b = 2641390116504058046593982364855935054624196913202961355189967522292222358134`.
 pub struct Ed25519EcFftParameters;
 
 impl EcFftParameters<F> for Ed25519EcFftParameters {
     /// The curve `E` has order multiple of 2^10
-    const LOG_N: usize = 10;
+    const LOG_N: usize = 15;
 
     const N: usize = 1 << Self::LOG_N;
 
@@ -66,7 +67,7 @@ mod tests {
         super::F,
         super::Ed25519EcFftParameters,
         0,
-        10
+        15 // must be equal to LOG_N
     }
 
     ecfft_tests! {
@@ -74,7 +75,7 @@ mod tests {
         ark_ed25519::EdwardsProjective,
         super::Ed25519EcFftParameters,
         5, // select 0 for full tests (slower)
-        10
+        15 // must be equal to LOG_N
     }
 
     #[test]
@@ -85,5 +86,4 @@ mod tests {
         let sc: F = F::from(2);
         let _ = pt * sc;
     }
-
 }

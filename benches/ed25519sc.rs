@@ -1,45 +1,74 @@
 use ark_ec::{VariableBaseMSM, ScalarMul};
-// use ark_bn254::Fr;
-// use ark_poly::univariate::DensePolynomial;
-// use ark_poly::{EvaluationDomain, Polynomial, Radix2EvaluationDomain};
 use ark_std::{rand::Rng, test_rng, time::Duration};
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode, BenchmarkGroup};
+use criterion::measurement::Measurement;
+use num_traits::Zero;
+
 use ecfft_group::ecfft::EcFftParameters;
 use ecfft_group::group_polynomial::{DenseGroupPolynomial, smallest_range};
 use ecfft_group::ed25519sc::{Ed25519EcFftParameters};
+use ecfft_group::vandermonde::{small_vandermonde_left_multiply};
 
 type P = Ed25519EcFftParameters;
 type F = ark_ed25519::Fr;
 type G = ark_ed25519::EdwardsProjective;
 
+/// Benchmark of polynomial evaluations over ed25519sc up to log(n) = 6
+/// using the auto sampling method (more precise but slower)
+/// See comments in poly(...) for details
+fn poly1(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ed25519-poly1");
+    poly(1, 6, &mut group);
+    group.finish();
+}
+
+/// Benchmark of polynomial evaluations over ed25519sc from log(n) = 7 to log(n) = 10
+/// using the flat sampling method (less precise but faster)
+/// See comments in poly(...) for details
+fn poly2(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ed25519-poly2");
+    group.sampling_mode(SamplingMode::Flat);
+    poly(7, 10, &mut group);
+    group.finish();
+}
+
+/// Benchmark of polynomial evaluations over ed25519sc from log(n) = 11
+/// using the flat sampling method (less precise but faster) and many less samplings
+/// See comments in poly(...) for details
+fn poly3(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ed25519-poly3");
+    group.sampling_mode(SamplingMode::Flat);
+    group.sample_size(10);
+    poly(11, Ed25519EcFftParameters::LOG_N, &mut group);
+    group.finish();
+}
+
 /// Benchmark of polynomial evaluations over ed25519sc
-/// and extend
-fn poly(c: &mut Criterion) {
+/// Test name = <coeff_type>-<domain>-<algo>
+/// coeff_type =
+///    sc = scalar field = Fr
+///    pt = group element of the elliptic curve ED25519
+/// domain = (size = 2^log(n))
+///    ecfftDm = ecfft domain points
+///    smallDm = small point from small_range centered on 0
+///              = [-2^(log(n)-1)+1, ..., 2^(log(n)-1)]
+/// algo = (for polynomial of degree 2^log(n)-1, except last algorithm
+///    ecfft = ECFFT algorithm
+///    extend = extend part of the ECFFT (this algo is not a poly evaluation)
+///    naive = Horner with no optimization
+///    smallHorner = Horner optimized for small values (using negation)
+///    vandermonde2 = left-multiplication of a random 2^log(n) vector
+///        by a 2^log(n) * 2^(1+log(n)) Vandermonde matrix with the points in domain
+///        (this algo is not a poly evaluation)
+/// Note that another algorithm consists in using multiscalar multiplication
+/// This can be benchmarked using the benchmark below
+/// Assuming the power of the evaluation points are pre-computed.
+/// TODO: The ECFFT algorithm does not use double-scalar multiplication which could make operations much faster
+fn poly<T: Measurement>(min_log_n: usize, max_log_n: usize, group: &mut BenchmarkGroup<T>) {
     let precomputation = P::precompute();
     let mut rng = test_rng();
 
-    let mut group = c.benchmark_group("ed25519-poly");
-    //group.measurement_time(Duration::from_secs(5));
-    group.measurement_time(Duration::from_secs(30));
-
-    for log_n in 1..=P::LOG_N {
-        // Test name = <coeff_type>-<domain>-<algo>
-        // coeff_type =
-        //    sc = scalar field = Fr
-        //    pt = group element of the elliptic curve ED25519
-        // domain =
-        //    ecfftDm = ecfft domain points
-        //    smallDm = small point from small_range centered on 0
-        // algo =
-        //    ecfft = ECFFT algorithm
-        //    extend = extend part of the ECFFT (only algorithn that is not a poly evaluation)
-        //    naive = Horner with no optimization
-        //    smallHorner = Hornet optimized for small values (using negation)
-        //    multiScalar = use multi-scalar multiplication with precomputation of powers of domain
-        // Note that another algorithm consists in using multiscalar multiplication
-        // This can be benchmarked using the benchmark below
-        // Assuming the power of the evaluation points are pre-computed.
-        // TODO: The ECFFT algorithm does not use double-scalar multiplication which could make operations much faster
+    for log_n in min_log_n..=max_log_n {
         group.bench_with_input(BenchmarkId::new("sc-ecfftDm-ecfft", log_n), &log_n, |b, _| {
             let coeffs: Vec<F> = (0..1 << log_n).map(|_| rng.gen()).collect();
             let poly = DenseGroupPolynomial { coeffs };
@@ -75,6 +104,11 @@ fn poly(c: &mut Criterion) {
             let coset = smallest_range(1 << log_n);
             b.iter(|| coset.iter().map(|x| poly.evaluate_small(*x)).collect::<Vec<_>>());
         });
+        group.bench_with_input(BenchmarkId::new("pt-smallDm-vandermonde", log_n), &log_n, |b, _| {
+            let vector: Vec<G> = (0..1 << log_n).map(|_| rng.gen()).collect();
+            let nb_cols = 1 << (log_n + 1);
+            b.iter(|| small_vandermonde_left_multiply(&vector[..], nb_cols));
+        });
     }
 }
 
@@ -100,7 +134,7 @@ fn base(c: &mut Criterion) {
         b.iter(|| -pt1);
     });
 
-    for log_n in 0..=12 {
+    for log_n in 0..=15 {
         let n = 1 << log_n;
         group.bench_with_input(BenchmarkId::new("convert-to-mul-base", log_n), &log_n, |b, _| {
             let pts: Vec<G> = (0..n).map(|_| rng.gen()).collect();
@@ -129,7 +163,15 @@ fn base(c: &mut Criterion) {
             b.iter(|| pt * sc);
         });
     }
+
+    // Multiply the zero point by a random scalar
+    group.bench_function("scalar-mult-rng-zero", |b| {
+        // Multiply a random point by a random scalar
+        let pt: G = G::zero();
+        let sc: F = rng.gen();
+        b.iter(|| pt * sc);
+    });
 }
 
-criterion_group!(benches, base, poly);
+criterion_group!(benches, base, poly1, poly2, poly3);
 criterion_main!(benches);

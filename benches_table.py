@@ -12,15 +12,34 @@ import argparse
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
+from typing import IO
 
 DEFAULT_CRITERION_TARGET_FOLDER = "target/criterion"
 DEFAULT_CRITERION_GLOB = "**/new/estimates.json"
 DEFAULT_BENCH_NAMES = ",".join([
     "ed25519-poly/pt-smallDm-hornerSmall",
-    "ed25519-poly/pt-smallDm-hornerSmall",
-    "ed25519-poly/pt-smallDm-hornerSmall",
     "ed25519-poly/pt-ecfftDm-extend"
 ])
+
+
+def read_estimate(full_path: Path) -> float:
+    """
+    Read the estimate.json at full_path and return the mean point estimate from it
+    Throw an exception if the estimate does not exist or is not a floating number
+    """
+    # read the estimates.json file
+    with full_path.open() as f:
+        j = json.load(f)
+
+    # check the estimate exists and is a float/integer
+    if "mean" not in j or "point_estimate" not in j["mean"] or \
+            (not isinstance(j["mean"]["point_estimate"], float) and not isinstance(j["mean"]["point_estimate"],
+                                                                                   int)):
+        raise ValueError(f"bench estimate '{full_path.as_posix()}' does "
+                         f"not contain a float 'mean.point_estimate'")
+    estimate = float(j["mean"]["point_estimate"])
+
+    return estimate
 
 
 def parse_benches_results(
@@ -62,23 +81,13 @@ def parse_benches_results(
         earliest_bench = min(bench_timestamp, earliest_bench)
         latest_bench = max(bench_timestamp, latest_bench)
 
-        # read the estimates.json file
-        with full_path.open() as f:
-            j = json.load(f)
-
-        # check the estimate exists and is a float/integer
-        if "mean" not in j or "point_estimate" not in j["mean"] or \
-                (not isinstance(j["mean"]["point_estimate"], float) and not isinstance(j["mean"]["point_estimate"],
-                                                                                       int)):
-            raise ValueError(f"bench '{bench_name}' with param '{bench_param}' does "
-                             f"not contain a float 'mean.point_estimate' ({full_path.as_posix()})")
-        estimate = float(j["mean"]["point_estimate"])
+        estimate = read_estimate(full_path)
 
         # store it
         if bench_param not in results:
             results[bench_param] = {}
         if bench_name in results[bench_param]:
-            # the same benchmark name/param can only be once
+            # the same benchmark name/param can only appear once
             # otherwise there is an issue somewhere
             raise ValueError(f"bench '{bench_name}' with param '{bench_param}' seen twice")
 
@@ -113,7 +122,10 @@ def format_ns(ns: float) -> str:
         ms = ns / 1e6
         return f"{ms:#.3g} ms".replace(". ", "  ")
     s = ns / 1e9
-    return f"{s:#.3g} s".replace(". ", "  ")
+    if s > 1000:
+        return f"{round(s):,} s"
+    else:
+        return f"{s:#.3g} s".replace(". ", "  ")
 
 
 def format_md(bench_names: list[str], short_bench_names: list[str], results: dict[int, dict[str, float]]):
